@@ -1,0 +1,364 @@
+# AI解决方案生成器配置
+
+# OpenAI配置（推荐）
+openai:
+  api_key: "${OPENAI_API_KEY}"  # 从环境变量读取
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-3.5-turbo"  # 可用模型: gpt-3.5-turbo, gpt-4, gpt-4-turbo
+  max_tokens: 2000
+  temperature: 0.7
+  top_p: 0.9
+  frequency_penalty: 0
+  presence_penalty: 0
+  timeout: 30  # 请求超时时间（秒）
+  max_retries: 3  # 最大重试次数
+
+# 本地模型配置（可选）
+local:
+  enabled: false  # 是否启用本地模型
+  base_url: "http://localhost:8000/v1"  # 本地模型API地址
+  model: "local-llm"  # 本地模型名称
+  timeout: 60  # 本地模型通常较慢，设置更长的超时时间
+  max_retries: 2
+
+# 备用模型配置（当主模型失败时使用）
+fallback:
+  enabled: true
+  strategy: "retry_with_fallback"  # 重试策略: retry_with_fallback, use_fallback_only
+  models:
+    - "gpt-3.5-turbo"  # 主模型
+    - "gpt-3.5-turbo-16k"  # 备用模型1
+    - "gpt-4"  # 备用模型2（如果可用）
+
+# 提示词模板
+prompt_templates:
+  # 默认提示词模板
+  default: |
+    你是一个经验丰富的运维工程师，擅长解决各种系统、网络、数据库和应用问题。
+    
+    请根据以下错误信息，提供专业的解决方案。
+    
+    错误签名: {signature}
+    错误类型: {error_type}
+    错误代码: {error_code}
+    日志来源: {log_source}
+    
+    错误详情:
+    {error_text}
+    
+    系统信息:
+    {system_info}
+    
+    请按照以下格式提供解决方案:
+    
+    ## 错误摘要
+    [用一句话概括错误]
+    
+    ## 根本原因分析
+    [分析错误的根本原因，包括可能的技术原因、配置问题、资源限制等]
+    
+    ## 解决方案
+    
+    ### 紧急处理步骤
+    1. [第一步]
+    2. [第二步]
+    3. [第三步]
+    
+    ### 根本解决方案
+    1. [长期解决方案1]
+    2. [长期解决方案2]
+    
+    ### 验证方法
+    1. [如何验证问题已解决]
+    2. [监控指标]
+    
+    ## 预防措施
+    1. [预防措施1]
+    2. [预防措施2]
+    
+    ## 分类
+    [从以下分类中选择: {categories}]
+    
+    ## 严重级别
+    [从以下级别中选择: {severities}]
+    
+    ## 标签
+    [相关标签，用逗号分隔]
+    
+    请确保解决方案:
+    1. 具体可行，有明确的步骤
+    2. 包含命令、配置示例等具体内容
+    3. 考虑生产环境的稳定性
+    4. 提供验证方法
+    5. 包含预防措施
+    
+    现在请提供解决方案:
+  
+  # 简洁版提示词（用于简单错误）
+  concise: |
+    作为运维专家，请为以下错误提供解决方案:
+    
+    错误: {error_text}
+    
+    请提供:
+    1. 根本原因
+    2. 解决步骤
+    3. 预防措施
+    
+    分类: {categories}
+    严重级别: {severities}
+  
+  # 详细版提示词（用于复杂错误）
+  detailed: |
+    你是一个资深运维架构师，请为以下生产环境错误提供详细解决方案:
+    
+    ## 错误上下文
+    - 签名: {signature}
+    - 类型: {error_type}
+    - 代码: {error_code}
+    - 来源: {log_source}
+    - 环境: {environment}
+    
+    ## 错误详情
+    {error_text}
+    
+    ## 系统信息
+    {system_info}
+    
+    ## 要求
+    请提供包含以下部分的完整解决方案:
+    
+    ### 1. 影响分析
+    - 影响范围
+    - 业务影响
+    - 紧急程度
+    
+    ### 2. 根因分析
+    - 直接原因
+    - 根本原因
+    - 相关因素
+    
+    ### 3. 解决方案
+    #### 3.1 紧急处理（5分钟内）
+    - 步骤1
+    - 步骤2
+    - 步骤3
+    
+    #### 3.2 临时方案（1小时内）
+    - 步骤1
+    - 步骤2
+    
+    #### 3.3 根本解决（24小时内）
+    - 步骤1
+    - 步骤2
+    
+    ### 4. 验证方案
+    - 功能验证
+    - 性能验证
+    - 监控验证
+    
+    ### 5. 预防措施
+    - 技术措施
+    - 流程措施
+    - 监控措施
+    
+    ### 6. 分类和标签
+    - 分类: {categories}
+    - 严重级别: {severities}
+    - 标签: [相关标签]
+    
+    请确保方案具体、可执行，并考虑生产环境约束。
+
+# 分类配置
+categories:
+  - "system"        # 系统级问题（操作系统、内核、资源等）
+  - "network"       # 网络问题（连接、DNS、防火墙等）
+  - "database"      # 数据库问题（MySQL、Redis、MongoDB等）
+  - "application"   # 应用级问题（Web服务、中间件、框架等）
+  - "security"      # 安全问题（权限、认证、漏洞等）
+  - "performance"   # 性能问题（慢查询、内存泄漏、CPU高等）
+  - "storage"       # 存储问题（磁盘、文件系统、IO等）
+  - "middleware"    # 中间件问题（消息队列、缓存、负载均衡等）
+  - "monitoring"    # 监控问题（指标、告警、日志等）
+  - "deployment"    # 部署问题（CI/CD、容器、编排等）
+  - "other"         # 其他问题
+
+# 严重级别配置
+severities:
+  - "CRITICAL"      # 严重：服务完全不可用，需要立即处理
+  - "ERROR"         # 错误：功能异常，影响用户体验
+  - "WARNING"       # 警告：潜在问题，需要关注
+  - "INFO"         # 信息：一般问题，记录即可
+  - "DEBUG"        # 调试：调试信息，通常忽略
+
+# 标签配置
+tags:
+  default:
+    - "ai-generated"   # AI生成
+    - "needs-review"   # 需要审核
+  
+  environment:
+    - "production"     # 生产环境
+    - "staging"        # 预发布环境
+    - "test"           # 测试环境
+    - "development"    # 开发环境
+  
+  technology:
+    - "java"           # Java相关
+    - "python"         # Python相关
+    - "nodejs"         # Node.js相关
+    - "docker"         # Docker相关
+    - "kubernetes"     # Kubernetes相关
+    - "linux"          # Linux相关
+    - "windows"        # Windows相关
+  
+  issue_type:
+    - "connection"     # 连接问题
+    - "timeout"        # 超时问题
+    - "memory"         # 内存问题
+    - "disk"           # 磁盘问题
+    - "permission"     # 权限问题
+    - "configuration"  # 配置问题
+    - "dependency"     # 依赖问题
+    - "resource"       # 资源问题
+
+# 响应解析配置
+response_parsing:
+  # 字段提取规则
+  fields:
+    error_summary:
+      pattern: "## 错误摘要\\s*(.*?)(?:\\n##|$)"
+      required: true
+    
+    root_cause:
+      pattern: "## 根本原因分析\\s*(.*?)(?:\\n##|$)"
+      required: true
+    
+    solution:
+      pattern: "## 解决方案\\s*(.*?)(?:\\n##|$)"
+      required: true
+    
+    prevention:
+      pattern: "## 预防措施\\s*(.*?)(?:\\n##|$)"
+      required: false
+    
+    category:
+      pattern: "## 分类\\s*\\[([^\\]]+)\\]"
+      required: true
+    
+    severity:
+      pattern: "## 严重级别\\s*\\[([^\\]]+)\\]"
+      required: true
+    
+    tags:
+      pattern: "## 标签\\s*\\[([^\\]]+)\\]"
+      required: false
+      transform: "split"  # 将逗号分隔的标签转换为列表
+  
+  # 置信度计算
+  confidence:
+    min_length: 100  # 最小解决方案长度
+    max_length: 5000  # 最大解决方案长度
+    required_fields: ["error_summary", "root_cause", "solution", "category", "severity"]
+    
+    # 置信度评分规则
+    scoring:
+      has_emergency_steps: 0.2
+      has_permanent_fix: 0.2
+      has_validation: 0.1
+      has_prevention: 0.1
+      has_commands: 0.1
+      has_config_examples: 0.1
+      length_adequate: 0.1
+      format_correct: 0.1
+
+# 缓存配置
+cache:
+  enabled: true
+  ttl: 3600  # 缓存存活时间（秒）
+  max_size: 1000  # 最大缓存条目数
+  
+  # 缓存键生成规则
+  key_generation:
+    include_signature: true
+    include_error_type: true
+    include_error_code: false
+    include_context_hash: true
+
+# 性能优化
+performance:
+  # 批量处理
+  batch_size: 10  # 批量处理大小
+  batch_delay: 1  # 批次间延迟（秒）
+  
+  # 并发控制
+  max_concurrent_requests: 2  # 最大并发请求数
+  request_timeout: 30  # 单个请求超时时间（秒）
+  
+  # 重试策略
+  retry:
+    max_attempts: 3
+    backoff_factor: 2  # 指数退避因子
+    initial_delay: 1  # 初始延迟（秒）
+
+# 监控和日志
+monitoring:
+  enabled: true
+  
+  # 指标收集
+  metrics:
+    - "generation_count"
+    - "generation_time"
+    - "success_rate"
+    - "cache_hit_rate"
+    - "error_count"
+  
+  # 日志配置
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: "./logs/ai_generator.log"
+  
+  # 告警阈值
+  alerts:
+    - metric: "success_rate"
+      threshold: 0.8  # 80%
+      condition: "<"
+      level: "WARNING"
+    
+    - metric: "generation_time_avg"
+      threshold: 10  # 10秒
+      condition: ">"
+      level: "WARNING"
+    
+    - metric: "error_count"
+      threshold: 10  # 10个错误
+      condition: ">"
+      level: "ERROR"
+
+# 测试配置
+testing:
+  # 测试用例
+  test_cases:
+    - error: "java.net.ConnectException: Connection refused"
+      expected_category: "network"
+      expected_severity: "ERROR"
+    
+    - error: "java.lang.OutOfMemoryError: Java heap space"
+      expected_category: "performance"
+      expected_severity: "CRITICAL"
+    
+    - error: "Permission denied: /var/log/app.log"
+      expected_category: "security"
+      expected_severity: "ERROR"
+  
+  # 模拟响应（用于测试）
+  mock_responses: false
+  mock_response_delay: 0.5  # 模拟响应延迟（秒）
+
+# 环境变量说明
+# 需要设置的环境变量:
+# OPENAI_API_KEY: OpenAI API密钥
+# 
+# 可选环境变量:
+# AI_MODEL: 覆盖配置中的模型
+# AI_BASE_URL: 覆盖配置中的API地址
+# AI_TIMEOUT: 覆盖配置中的超时时间

@@ -1,0 +1,704 @@
+#!/bin/bash
+
+# 专业日志分析专家 - 统一入口脚本
+# 整合SSH远程日志分析和ELK集中式日志分析功能
+
+set -e
+
+# 基础配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="${SCRIPT_DIR}/config"
+KNOWLEDGE_BASE="${SCRIPT_DIR}/../knowledge-base"
+SCRIPTS_DIR="${SCRIPT_DIR}/scripts"
+TOOLS_DIR="${SCRIPT_DIR}/tools"
+LOGS_DIR="${SCRIPT_DIR}/logs"
+REPORTS_DIR="${SCRIPT_DIR}/reports"
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# 日志函数
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $*"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $*"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $*" >&2
+}
+
+# 显示帮助信息
+show_help() {
+    cat << EOF
+专业日志分析专家 - log-analyzer-pro v1.0.0
+
+统一支持SSH远程日志和ELK集中式日志分析。
+
+用法: $0 [命令] [选项]
+
+命令:
+  ssh              SSH远程日志分析
+  elk             ELK集中式日志分析
+  analyze         统一分析（自动选择数据源）
+  knowledge       知识库管理
+  config          配置管理
+  report          报告生成
+  alert           告警管理
+  workflow        工作流管理
+  tools           工具脚本
+  help            显示帮助信息
+
+通用选项:
+  --verbose, -v   详细输出
+  --quiet, -q     安静模式
+  --debug         调试模式
+  --version       显示版本
+
+示例:
+  # SSH日志分析
+  $0 ssh --host server01 --log /var/log/syslog --lines 1000
+  $0 ssh analyze --server production-web --time "1 hour ago"
+
+  # ELK日志分析
+  $0 elk health
+  $0 elk errors --time 2h --level ERROR
+  $0 elk search --query "OutOfMemoryError"
+
+  # 统一分析
+  $0 analyze --target server01:syslog --time 1h
+  $0 analyze --ssh-host server01 --elk-index logstash-* --time 30m
+
+  # 知识库管理
+  $0 knowledge list
+  $0 knowledge search "磁盘空间不足"
+  $0 knowledge show elasticsearch/disk-space-full
+
+  # 智能知识库
+  $0 knowledge analyze-error --error "java.net.ConnectException: Connection refused"
+  $0 knowledge analyze-log --file error.log
+  $0 knowledge list-pending
+  $0 knowledge confirm-solution --file pending_xxxx.json --reviewer "admin"
+
+  # 配置管理
+  $0 config init
+  $0 config show
+  $0 config validate
+
+  # 报告生成
+  $0 report daily --time 24h --output daily-report.md
+  $0 report comprehensive --time 7d --output weekly-report.html --format html
+
+  # 告警管理
+  $0 alert test --config config/alert-config.yaml
+  $0 alert status
+  $0 alert check --now
+
+  # 工作流管理
+  $0 workflow define --name "daily-monitoring" --steps "health-check,error-analysis"
+  $0 workflow run --name "daily-monitoring" --time 24h
+
+  # 工具脚本
+  $0 tools setup-cron --mode basic
+  $0 tools daily-report --output reports/daily-\$(date +%Y%m%d).md
+  $0 tools send-email --report reports/daily-20240428.md
+
+详细文档请查看: SKILL.md
+EOF
+}
+
+# 显示版本信息
+show_version() {
+    echo "log-analyzer-pro v1.0.0"
+    echo "专业日志分析专家 - 统一SSH和ELK日志分析"
+    echo "创建时间: 2026-04-28"
+    echo "作者: 运维助手 🔧"
+}
+
+# 检查依赖
+check_dependencies() {
+    local missing_deps=()
+    
+    # 检查基本命令
+    for cmd in curl jq ssh; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_deps+=("$cmd")
+        fi
+    done
+    
+    # 检查Python
+    if ! command -v python3 >/dev/null 2>&1; then
+        missing_deps+=("python3")
+    fi
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        log_error "缺少依赖: ${missing_deps[*]}"
+        echo "请安装缺少的依赖:"
+        echo "  Ubuntu/Debian: sudo apt-get install ${missing_deps[*]}"
+        echo "  CentOS/RHEL: sudo yum install ${missing_deps[*]}"
+        echo "  macOS: brew install ${missing_deps[*]}"
+        return 1
+    fi
+    
+    return 0
+}
+
+# 初始化环境
+init_environment() {
+    # 创建必要的目录
+    mkdir -p "$CONFIG_DIR" "$KNOWLEDGE_BASE" "$SCRIPTS_DIR" "$TOOLS_DIR" "$LOGS_DIR" "$REPORTS_DIR"
+    
+    # 设置日志文件
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    LOG_FILE="$LOGS_DIR/log-analyzer-pro_${timestamp}.log"
+    
+    # 记录启动信息
+    log_info "启动 log-analyzer-pro"
+    log_info "脚本目录: $SCRIPT_DIR"
+    log_info "配置目录: $CONFIG_DIR"
+    log_info "知识库目录: $KNOWLEDGE_BASE"
+    log_info "日志文件: $LOG_FILE"
+}
+
+# SSH命令处理
+handle_ssh() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "get")
+            # SSH获取日志
+            log_info "执行SSH日志获取"
+            python3 "$SCRIPTS_DIR/ssh_log_fetcher.py" "$@"
+            ;;
+        "analyze")
+            # SSH日志分析
+            log_info "执行SSH日志分析"
+            python3 "$SCRIPTS_DIR/log_analyzer.py" --source ssh "$@"
+            ;;
+        "monitor")
+            # SSH日志监控
+            log_info "执行SSH日志监控"
+            python3 "$SCRIPTS_DIR/ssh_monitor.py" "$@"
+            ;;
+        "batch")
+            # SSH批量操作
+            log_info "执行SSH批量操作"
+            python3 "$SCRIPTS_DIR/ssh_batch.py" "$@"
+            ;;
+        "test")
+            # SSH连接测试
+            log_info "测试SSH连接"
+            python3 "$SCRIPTS_DIR/ssh_tester.py" "$@"
+            ;;
+        "config")
+            # SSH配置管理
+            log_info "管理SSH配置"
+            python3 "$SCRIPTS_DIR/ssh_config.py" "$@"
+            ;;
+        *)
+            log_error "未知的SSH子命令: $subcommand"
+            echo "可用子命令: get, analyze, monitor, batch, test, config"
+            echo "使用: $0 ssh [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# ELK命令处理
+handle_elk() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "health")
+            # ELK集群健康检查
+            log_info "检查ELK集群健康状态"
+            python3 "$SCRIPTS_DIR/elk_health.py" "$@"
+            ;;
+        "errors")
+            # ELK错误日志分析
+            log_info "分析ELK错误日志"
+            python3 "$SCRIPTS_DIR/elk_error_analyzer.py" "$@"
+            ;;
+        "search")
+            # ELK日志搜索
+            log_info "搜索ELK日志"
+            python3 "$SCRIPTS_DIR/elk_searcher.py" "$@"
+            ;;
+        "performance")
+            # ELK性能分析
+            log_info "分析ELK性能"
+            python3 "$SCRIPTS_DIR/elk_performance.py" "$@"
+            ;;
+        "query")
+            # ELK自定义查询
+            log_info "执行ELK自定义查询"
+            python3 "$SCRIPTS_DIR/elk_query.py" "$@"
+            ;;
+        "nodes")
+            # ELK节点状态
+            log_info "查看ELK节点状态"
+            python3 "$SCRIPTS_DIR/elk_nodes.py" "$@"
+            ;;
+        "indices")
+            # ELK索引状态
+            log_info "查看ELK索引状态"
+            python3 "$SCRIPTS_DIR/elk_indices.py" "$@"
+            ;;
+        "config")
+            # ELK配置管理
+            log_info "管理ELK配置"
+            python3 "$SCRIPTS_DIR/elk_config.py" "$@"
+            ;;
+        *)
+            log_error "未知的ELK子命令: $subcommand"
+            echo "可用子命令: health, errors, search, performance, query, nodes, indices, config"
+            echo "使用: $0 elk [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 统一分析命令处理
+handle_analyze() {
+    log_info "执行统一日志分析"
+    python3 "$SCRIPTS_DIR/unified_analyzer.py" "$@"
+}
+
+# 知识库命令处理
+handle_knowledge() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "list")
+            # 列出知识条目
+            log_info "列出知识库条目"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" list "$@"
+            ;;
+        "search")
+            # 搜索知识库
+            log_info "搜索知识库"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" search "$@"
+            ;;
+        "show")
+            # 显示知识条目详情
+            log_info "显示知识条目详情"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" show "$@"
+            ;;
+        "add")
+            # 添加知识条目
+            log_info "添加知识条目"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" add "$@"
+            ;;
+        "update")
+            # 更新知识条目
+            log_info "更新知识条目"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" update "$@"
+            ;;
+        "delete")
+            # 删除知识条目
+            log_info "删除知识条目"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" delete "$@"
+            ;;
+        "stats")
+            # 知识库统计
+            log_info "知识库统计"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" stats "$@"
+            ;;
+        "export")
+            # 导出知识库
+            log_info "导出知识库"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" export "$@"
+            ;;
+        "import")
+            # 导入知识库
+            log_info "导入知识库"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" import "$@"
+            ;;
+        "rebuild-index")
+            # 重建索引
+            log_info "重建知识库索引"
+            python3 "$SCRIPTS_DIR/knowledge_manager.py" rebuild-index "$@"
+            ;;
+        "intelligent")
+            # 智能知识库管理
+            log_info "智能知识库管理"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" "$@"
+            ;;
+        "analyze-error")
+            # 智能分析错误
+            log_info "智能分析错误"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" analyze "$@"
+            ;;
+        "analyze-log")
+            # 智能分析日志文件
+            log_info "智能分析日志文件"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" analyze-file "$@"
+            ;;
+        "confirm-solution")
+            # 确认解决方案
+            log_info "确认解决方案"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" confirm "$@"
+            ;;
+        "reject-solution")
+            # 拒绝解决方案
+            log_info "拒绝解决方案"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" reject "$@"
+            ;;
+        "list-pending")
+            # 列出待确认解决方案
+            log_info "列出待确认解决方案"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" list-pending "$@"
+            ;;
+        "intelligent-stats")
+            # 智能知识库统计
+            log_info "智能知识库统计"
+            python3 "$SCRIPTS_DIR/intelligent_knowledge.py" stats "$@"
+            ;;
+        *)
+            log_error "未知的知识库子命令: $subcommand"
+            echo "可用子命令: list, search, show, add, update, delete, stats, export, import, rebuild-index"
+            echo "智能子命令: intelligent, analyze-error, analyze-log, confirm-solution, reject-solution, list-pending, intelligent-stats"
+            echo "使用: $0 knowledge [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 配置命令处理
+handle_config() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "init")
+            # 初始化配置
+            log_info "初始化配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" init "$@"
+            ;;
+        "show")
+            # 显示配置
+            log_info "显示配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" show "$@"
+            ;;
+        "edit")
+            # 编辑配置
+            log_info "编辑配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" edit "$@"
+            ;;
+        "validate")
+            # 验证配置
+            log_info "验证配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" validate "$@"
+            ;;
+        "backup")
+            # 备份配置
+            log_info "备份配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" backup "$@"
+            ;;
+        "restore")
+            # 恢复配置
+            log_info "恢复配置"
+            python3 "$SCRIPTS_DIR/config_manager.py" restore "$@"
+            ;;
+        *)
+            log_error "未知的配置子命令: $subcommand"
+            echo "可用子命令: init, show, edit, validate, backup, restore"
+            echo "使用: $0 config [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 报告命令处理
+handle_report() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "daily")
+            # 日报生成
+            log_info "生成日报"
+            python3 "$SCRIPTS_DIR/report_generator.py" daily "$@"
+            ;;
+        "weekly")
+            # 周报生成
+            log_info "生成周报"
+            python3 "$SCRIPTS_DIR/report_generator.py" weekly "$@"
+            ;;
+        "monthly")
+            # 月报生成
+            log_info "生成月报"
+            python3 "$SCRIPTS_DIR/report_generator.py" monthly "$@"
+            ;;
+        "health")
+            # 健康报告
+            log_info "生成健康报告"
+            python3 "$SCRIPTS_DIR/report_generator.py" health "$@"
+            ;;
+        "errors")
+            # 错误报告
+            log_info "生成错误报告"
+            python3 "$SCRIPTS_DIR/report_generator.py" errors "$@"
+            ;;
+        "performance")
+            # 性能报告
+            log_info "生成性能报告"
+            python3 "$SCRIPTS_DIR/report_generator.py" performance "$@"
+            ;;
+        "comprehensive")
+            # 综合报告
+            log_info "生成综合报告"
+            python3 "$SCRIPTS_DIR/report_generator.py" comprehensive "$@"
+            ;;
+        "compare")
+            # 比较报告
+            log_info "生成比较报告"
+            python3 "$SCRIPTS_DIR/report_generator.py" compare "$@"
+            ;;
+        *)
+            log_error "未知的报告子命令: $subcommand"
+            echo "可用子命令: daily, weekly, monthly, health, errors, performance, comprehensive, compare"
+            echo "使用: $0 report [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 告警命令处理
+handle_alert() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "test")
+            # 测试告警配置
+            log_info "测试告警配置"
+            python3 "$SCRIPTS_DIR/alert_manager.py" test "$@"
+            ;;
+        "status")
+            # 告警状态
+            log_info "查看告警状态"
+            python3 "$SCRIPTS_DIR/alert_manager.py" status "$@"
+            ;;
+        "check")
+            # 检查告警
+            log_info "检查告警"
+            python3 "$SCRIPTS_DIR/alert_manager.py" check "$@"
+            ;;
+        "history")
+            # 告警历史
+            log_info "查看告警历史"
+            python3 "$SCRIPTS_DIR/alert_manager.py" history "$@"
+            ;;
+        "config")
+            # 告警配置
+            log_info "管理告警配置"
+            python3 "$SCRIPTS_DIR/alert_manager.py" config "$@"
+            ;;
+        *)
+            log_error "未知的告警子命令: $subcommand"
+            echo "可用子命令: test, status, check, history, config"
+            echo "使用: $0 alert [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 工作流命令处理
+handle_workflow() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "define")
+            # 定义工作流
+            log_info "定义工作流"
+            python3 "$SCRIPTS_DIR/workflow_manager.py" define "$@"
+            ;;
+        "run")
+            # 运行工作流
+            log_info "运行工作流"
+            python3 "$SCRIPTS_DIR/workflow_manager.py" run "$@"
+            ;;
+        "list")
+            # 列出工作流
+            log_info "列出工作流"
+            python3 "$SCRIPTS_DIR/workflow_manager.py" list "$@"
+            ;;
+        "schedule")
+            # 调度工作流
+            log_info "调度工作流"
+            python3 "$SCRIPTS_DIR/workflow_manager.py" schedule "$@"
+            ;;
+        "status")
+            # 工作流状态
+            log_info "查看工作流状态"
+            python3 "$SCRIPTS_DIR/workflow_manager.py" status "$@"
+            ;;
+        *)
+            log_error "未知的工作流子命令: $subcommand"
+            echo "可用子命令: define, run, list, schedule, status"
+            echo "使用: $0 workflow [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 工具命令处理
+handle_tools() {
+    local subcommand="$1"
+    shift
+    
+    case "$subcommand" in
+        "setup-cron")
+            # 设置定时任务
+            log_info "设置定时任务"
+            "$TOOLS_DIR/setup-cron.sh" "$@"
+            ;;
+        "daily-report")
+            # 生成日报
+            log_info "生成日报"
+            "$TOOLS_DIR/daily-report.sh" "$@"
+            ;;
+        "send-email")
+            # 发送邮件
+            log_info "发送邮件"
+            python3 "$TOOLS_DIR/send-email.py" "$@"
+            ;;
+        "quick-start")
+            # 快速启动
+            log_info "快速启动"
+            "$TOOLS_DIR/quick-start.sh" "$@"
+            ;;
+        "backup")
+            # 备份工具
+            log_info "执行备份"
+            "$TOOLS_DIR/backup.sh" "$@"
+            ;;
+        "restore")
+            # 恢复工具
+            log_info "执行恢复"
+            "$TOOLS_DIR/restore.sh" "$@"
+            ;;
+        *)
+            log_error "未知的工具子命令: $subcommand"
+            echo "可用子命令: setup-cron, daily-report, send-email, quick-start, backup, restore"
+            echo "使用: $0 tools [子命令] --help 查看帮助"
+            exit 1
+            ;;
+    esac
+}
+
+# 主函数
+main() {
+    # 检查参数
+    if [ $# -eq 0 ]; then
+        show_help
+        exit 0
+    fi
+    
+    # 处理全局选项
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --verbose|-v)
+                export LOG_LEVEL="DEBUG"
+                shift
+                ;;
+            --quiet|-q)
+                export LOG_LEVEL="ERROR"
+                shift
+                ;;
+            --debug)
+                export DEBUG_MODE="true"
+                set -x
+                shift
+                ;;
+            --version)
+                show_version
+                exit 0
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    
+    # 获取主命令
+    local command="$1"
+    shift
+    
+    # 初始化环境
+    init_environment
+    
+    # 检查依赖
+    if ! check_dependencies; then
+        exit 1
+    fi
+    
+    # 根据命令路由到对应的处理函数
+    case "$command" in
+        "ssh")
+            handle_ssh "$@"
+            ;;
+        "elk")
+            handle_elk "$@"
+            ;;
+        "analyze")
+            handle_analyze "$@"
+            ;;
+        "knowledge")
+            handle_knowledge "$@"
+            ;;
+        "config")
+            handle_config "$@"
+            ;;
+        "report")
+            handle_report "$@"
+            ;;
+        "alert")
+            handle_alert "$@"
+            ;;
+        "workflow")
+            handle_workflow "$@"
+            ;;
+        "tools")
+            handle_tools "$@"
+            ;;
+        "help")
+            show_help
+            ;;
+        *)
+            log_error "未知命令: $command"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# 执行主函数
+main "$@"
+
+# 记录结束时间
+log_info "log-analyzer-pro 执行完成"
+if [ -n "$LOG_FILE" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 执行完成" >> "$LOG_FILE"
+fi

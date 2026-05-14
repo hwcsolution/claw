@@ -1,0 +1,278 @@
+# 智能分析器配置
+
+# 数据库配置
+database:
+  path: "knowledge.db"  # SQLite数据库文件路径
+  auto_backup: true     # 是否自动备份
+  backup_dir: "./backups"  # 备份目录
+  backup_interval: 86400  # 备份间隔（秒），默认1天
+
+# AI配置
+ai:
+  # OpenAI配置
+  openai:
+    api_key: "${OPENAI_API_KEY}"  # 从环境变量读取
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-3.5-turbo"  # 或 "gpt-4"
+    max_tokens: 2000
+    temperature: 0.7
+    timeout: 30  # 秒
+  
+  # 本地模型配置（可选）
+  local:
+    enabled: false
+    base_url: "http://localhost:8000/v1"
+    model: "local-llm"
+    timeout: 60
+  
+  # 生成配置
+  generation:
+    min_confidence: 0.7  # 最小置信度阈值
+    max_retries: 3       # 最大重试次数
+    retry_delay: 2       # 重试延迟（秒）
+    auto_confirm: false  # 是否自动确认AI生成的解决方案
+
+# 错误提取配置
+error_extraction:
+  max_error_length: 10000  # 最大错误文本长度
+  extract_stack_trace: true  # 是否提取堆栈跟踪
+  max_stack_depth: 20      # 最大堆栈深度
+  
+  # 错误模式匹配
+  patterns:
+    java_exception: true
+    python_exception: true
+    system_error: true
+    connection_error: true
+    timeout_error: true
+    database_error: true
+    memory_error: true
+    disk_error: true
+    permission_error: true
+
+# 知识库配置
+knowledge_base:
+  # 分类配置
+  categories:
+    - "system"        # 系统级问题
+    - "network"       # 网络问题
+    - "database"      # 数据库问题
+    - "application"   # 应用级问题
+    - "security"      # 安全问题
+    - "performance"   # 性能问题
+    - "storage"       # 存储问题
+    - "middleware"    # 中间件问题
+    - "monitoring"    # 监控问题
+    - "other"         # 其他问题
+  
+  # 严重级别配置
+  severities:
+    - "CRITICAL"      # 严重：服务不可用
+    - "ERROR"         # 错误：功能异常
+    - "WARNING"       # 警告：潜在问题
+    - "INFO"          # 信息：一般问题
+  
+  # 标签配置
+  default_tags:
+    - "ai-generated"   # AI生成
+    - "needs-review"   # 需要审核
+    - "verified"       # 已验证
+    - "production"     # 生产环境
+    - "test"           # 测试环境
+  
+  # 匹配配置
+  matching:
+    fuzzy_match: true      # 是否启用模糊匹配
+    similarity_threshold: 0.8  # 相似度阈值
+    max_similar_results: 5     # 最大相似结果数
+
+# 工作流配置
+workflow:
+  # 分析流程
+  analysis:
+    extract_signature: true
+    search_knowledge_base: true
+    generate_if_not_found: true
+    require_human_review: true  # 是否需要人工审核
+  
+  # 审核流程
+  review:
+    notification_enabled: true
+    notification_channels: ["email", "slack"]
+    auto_approve_confidence: 0.9  # 置信度高于此值时自动批准
+    review_timeout: 86400  # 审核超时时间（秒），默认1天
+  
+  # 归档流程
+  archiving:
+    keep_pending_days: 7    # 保留待审核方案天数
+    keep_verified_days: 365  # 保留已验证方案天数
+    keep_rejected_days: 30   # 保留被拒绝方案天数
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "./logs/intelligent_analyzer.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+  
+  # 日志格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# 通知配置
+notifications:
+  enabled: true
+  
+  # 邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "user@example.com"
+    password: "${EMAIL_PASSWORD}"  # 从环境变量读取
+    from_address: "alerts@example.com"
+    to_addresses:
+      - "admin@example.com"
+      - "ops@example.com"
+  
+  # Slack通知
+  slack:
+    enabled: false
+    webhook_url: "${SLACK_WEBHOOK_URL}"  # 从环境变量读取
+    channel: "#alerts"
+    username: "智能分析器"
+    icon_emoji: ":robot_face:"
+  
+  # 飞书通知
+  feishu:
+    enabled: false
+    webhook_url: "${FEISHU_WEBHOOK_URL}"  # 从环境变量读取
+    secret: "${FEISHU_SECRET}"  # 从环境变量读取
+  
+  # 触发条件
+  triggers:
+    - event: "solution_found"      # 找到解决方案
+      level: "INFO"
+      channels: ["slack"]
+    
+    - event: "ai_generated"        # AI生成解决方案
+      level: "INFO"
+      channels: ["slack", "email"]
+    
+    - event: "human_review_needed" # 需要人工审核
+      level: "WARNING"
+      channels: ["slack", "email", "feishu"]
+    
+    - event: "ai_failed"           # AI生成失败
+      level: "ERROR"
+      channels: ["slack", "email"]
+    
+    - event: "solution_confirmed"  # 解决方案已确认
+      level: "INFO"
+      channels: ["slack"]
+    
+    - event: "solution_rejected"   # 解决方案被拒绝
+      level: "WARNING"
+      channels: ["slack"]
+
+# 性能配置
+performance:
+  # 缓存配置
+  cache:
+    enabled: true
+    max_size: 1000  # 最大缓存条目数
+    ttl: 3600       # 缓存存活时间（秒）
+  
+  # 并发配置
+  concurrency:
+    max_workers: 4      # 最大工作线程数
+    max_ai_requests: 2  # 最大并发AI请求数
+    request_timeout: 30  # 请求超时时间（秒）
+  
+  # 资源限制
+  resources:
+    max_memory_mb: 512  # 最大内存使用（MB）
+    max_cpu_percent: 50  # 最大CPU使用率
+
+# 监控配置
+monitoring:
+  enabled: true
+  
+  # 指标收集
+  metrics:
+    - "analysis_count"
+    - "knowledge_base_hits"
+    - "ai_generation_count"
+    - "ai_generation_time"
+    - "human_review_count"
+    - "solution_confirmation_rate"
+  
+  # 告警阈值
+  alerts:
+    - metric: "ai_generation_failure_rate"
+      threshold: 0.1  # 10%
+      condition: ">"
+      level: "ERROR"
+    
+    - metric: "human_review_pending_count"
+      threshold: 10
+      condition: ">"
+      level: "WARNING"
+    
+    - metric: "knowledge_base_hit_rate"
+      threshold: 0.5  # 50%
+      condition: "<"
+      level: "WARNING"
+
+# 导出配置
+export:
+  # 定期导出
+  scheduled: true
+  schedule: "0 0 * * *"  # 每天0点
+  format: "json"         # json, csv, markdown
+  include_pending: true
+  include_rejected: false
+  
+  # 导出目录
+  directory: "./exports"
+  retention_days: 30
+
+# 示例错误模式（用于测试）
+example_patterns:
+  # Java异常
+  - pattern: "java.net.ConnectException: Connection refused"
+    category: "network"
+    severity: "ERROR"
+    tags: ["java", "connection", "refused"]
+  
+  # 数据库错误
+  - pattern: "MySQLIntegrityConstraintViolationException: Duplicate entry"
+    category: "database"
+    severity: "ERROR"
+    tags: ["mysql", "constraint", "duplicate"]
+  
+  # 磁盘空间错误
+  - pattern: "No space left on device"
+    category: "storage"
+    severity: "CRITICAL"
+    tags: ["disk", "space", "full"]
+  
+  # 内存错误
+  - pattern: "java.lang.OutOfMemoryError: Java heap space"
+    category: "performance"
+    severity: "CRITICAL"
+    tags: ["java", "memory", "heap"]
+  
+  # 权限错误
+  - pattern: "Permission denied"
+    category: "security"
+    severity: "ERROR"
+    tags: ["permission", "access"]
+
+# 环境变量占位符说明
+# 实际值应从环境变量读取：
+# OPENAI_API_KEY: OpenAI API密钥
+# EMAIL_PASSWORD: 邮箱密码
+# SLACK_WEBHOOK_URL: Slack Webhook URL
+# FEISHU_WEBHOOK_URL: 飞书Webhook URL
+# FEISHU_SECRET: 飞书签名密钥
