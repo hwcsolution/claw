@@ -1,4 +1,4 @@
-# OpenClaw Skills Collection
+# Lobster Skills Collection
 
 [中文版 README](README_CN.md)
 

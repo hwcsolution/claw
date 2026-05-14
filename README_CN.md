@@ -1,4 +1,4 @@
-# OpenClaw 技能集合
+# 龙虾技能集合
 
 [English README](README.md)
 
