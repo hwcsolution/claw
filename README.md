@@ -13,8 +13,6 @@ The skill collection focuses on scenario-based implementation for openclaw. It r
 -   💻 **Automated Development Assistant**: Focuses on backend development, code generation, test writing, and GitHub automation.
 -   📱 **Xiaohongshu Operations Assistant**: Hotspot discovery, competitor research, content creation, image generation, and publishing scheduling.
 -   📊 **Daily Hotspot Tracker**: Monitors tech & digital hotspots on platforms like Weibo and Zhihu, automatically generates content drafts, and sends QQ reminders.
--   ✅ **One-Stop Ad Content Compliance Audit**: Automates image OCR, prohibited word detection under advertising laws, and platform rule review, outputting a unified compliance report.
--   📦 **POSpal Inventory Automated Sync Tool**: A secure and reliable tool for automating POSpal inventory management, supporting environment variable configuration and batch operations.
 -   📝 **Teacher Assistant**: Assists with student performance management, data analysis, report generation, and home-school communication.
 -   🔍 **Log Analysis**: Analyzes daily error logs, diagnoses issues, provides solutions, and archives knowledge.
 
@@ -34,8 +32,5 @@ The skill collection focuses on scenario-based implementation for openclaw. It r
 | `xhs-scheduler` | Xiaohongshu smart scheduling publisher. Helps content creators automate content scheduling and timed publishing. |
 | `xhs-trending` | Multi-platform hotspot fetcher. Filters hotspots relevant to the Xiaohongshu account's domain and outputs a TOP hotspot list. |
 | `xhs-writer` | Xiaohongshu content creation suite. Offline generation of viral titles, body text, hashtags, comments, and multi-image card Markdown, providing comprehensive support for various topics. |
-| `daily-hotspot-tracker` | A fully automated tech & digital hotspot monitoring system. Supports multi-platform hotspot discovery, intelligent analysis, content generation, and real-time alerts. |
-| `advertising-content-audit` | Provides one-stop compliance audit services for advertising content. |
-| `pospal-inventory-sync` | Automates product inventory management for the POSpal system (beta74.pospal.cn), including login, product search, inventory modification, and batch operations. |
 | `teacher-assistant` | Teacher assistant skill - a complete home-school communication and student performance management system. Activated when users mention student grades, parent communication, performance analysis, report sending, grade file uploading, or need to generate student reports. |
 | `og-analyzer-pro` | Focuses on log analysis, system monitoring, fault diagnosis, and automated operations. |
