@@ -1,12 +1,12 @@
-# OpenClaw Skills Collection for Huawei Cloud L Instance
+# OpenClaw Skills Collection
 
 [中文版 README](README_CN.md)
 
 ## Introduction
 
-This repository provides a comprehensive skill adaptation solution for Huawei Cloud L instances, integrating 13 skills across 7 high-frequency practical scenarios. It covers multi-dimensional needs including automated development, operations & promotion, office efficiency, data processing, and compliance review. All skills can be deployed directly on Huawei Cloud L instances for rapid invocation and efficient operations.
+This repository provides a comprehensive skill adaptation solution for openclaw, integrating 13 skills across 7 high-frequency practical scenarios. It covers multi-dimensional needs including automated development, operations & promotion, office efficiency, data processing, and compliance review. All skills can be deployed directly on openclaw for rapid invocation and efficient operations.
 
-The skill collection focuses on scenario-based implementation for Huawei Cloud L instances. It requires no complex configuration and works out of the box, helping users quickly unlock the value of their instances and reduce operational costs across multiple scenarios. It is suitable for the core needs of diverse user groups including individual developers, enterprise office workers, and operations personnel.
+The skill collection focuses on scenario-based implementation for openclaw. It requires no complex configuration and works out of the box, helping users quickly unlock the value of their instances and reduce operational costs across multiple scenarios. It is suitable for the core needs of diverse user groups including individual developers, enterprise office workers, and operations personnel.
 
 ### Core Capabilities
 
@@ -20,7 +20,7 @@ The skill collection focuses on scenario-based implementation for Huawei Cloud L
 
 ## Installation
 
-> Coming soon: A complete installation script will be provided later, supporting one-click deployment on Huawei Cloud L instances, including the entire process of dependency installation and environment configuration.
+> Coming soon: A complete installation script will be provided later, supporting one-click deployment on openclaw, including the entire process of dependency installation and environment configuration.
 
 ## Skill List
 
